@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="96" viewBox="0 0 360 96" role="img" aria-labelledby="title desc">
+  <title id="title">아이랑코스</title>
+  <desc id="desc">진한 남색 아이랑과 하늘색 코스로 구성된 글자 로고</desc>
+  <text x="8" y="68" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, sans-serif" font-size="55" font-weight="800" letter-spacing="-3">
+    <tspan fill="#25364A">아이랑</tspan><tspan fill="#55BCEB">코스</tspan>
+  </text>
+</svg>
