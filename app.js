@@ -30,6 +30,9 @@ const coursePlaces = [
 
 let courseMap = null;
 let mapLoadPromise = null;
+let courseMarkers = [];
+let courseInfoWindow = null;
+let pendingPlaceIndex = null;
 
 function show(id) {
   document.querySelectorAll('.view').forEach(view => view.classList.add('hidden'));
@@ -125,6 +128,37 @@ function addNavigationButtons() {
   });
 }
 
+function addTimelinePlaceBadges() {
+  const timelineStops = [
+    {article: 0, place: 0, badge: '1', name: '출발지 마들역'},
+    {article: 1, place: 1, badge: '2', name: '점심 정성카츠 공릉점'},
+    {article: 2, place: 2, badge: '3-A', name: '서울생활사박물관'},
+    {article: 3, place: 2, badge: '3-B', name: '어린이체험실 옴팡'},
+    {article: 4, place: 0, badge: '↩1', name: '귀가 마들역'}
+  ];
+  const articles = document.querySelectorAll('.timeline article');
+  timelineStops.forEach(({article, place, badge, name}) => {
+    const item = articles[article];
+    const heading = item.querySelector('h3');
+    const badgeElement = document.createElement('span');
+    badgeElement.className = 'timeline-place-badge';
+    badgeElement.textContent = badge;
+    heading.prepend(badgeElement);
+    item.dataset.placeIndex = place;
+    item.tabIndex = 0;
+    item.setAttribute('role', 'button');
+    item.setAttribute('aria-label', `${name} 지도에서 보기`);
+    const activate = event => {
+      if (event.type === 'click' && event.target.closest('a,button')) return;
+      if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      focusCoursePlace(place);
+    };
+    item.addEventListener('click', activate);
+    item.addEventListener('keydown', activate);
+  });
+}
+
 function setMapFailure() {
   $('#map-status').textContent = '지도 연결을 확인해주세요';
   $('#map-fallback').classList.remove('hidden');
@@ -154,18 +188,47 @@ function createCourseMap() {
   const positions = coursePlaces.map(place => new window.naver.maps.LatLng(place.lat, place.lng));
   courseMap = new window.naver.maps.Map('course-map', {center: positions[1], zoom: 12, scaleControl: false});
   const bounds = new window.naver.maps.LatLngBounds();
-  positions.forEach((position, index) => {
+  courseMarkers = positions.map((position, index) => {
     bounds.extend(position);
-    new window.naver.maps.Marker({
+    const marker = new window.naver.maps.Marker({
       map: courseMap,
       position,
       title: coursePlaces[index].name,
-      icon: {content: `<div class="course-map-marker"><span>${index + 1}</span></div>`, anchor: new window.naver.maps.Point(17, 34)}
+      icon: {
+        content: `<div class="course-map-marker"><span>${index + 1}</span><b>${coursePlaces[index].name.replace(' · 옴팡', '')}</b></div>`,
+        anchor: new window.naver.maps.Point(20, 42)
+      }
     });
+    window.naver.maps.Event.addListener(marker, 'click', () => focusCoursePlace(index));
+    return marker;
   });
   courseMap.fitBounds(bounds, {top: 48, right: 48, bottom: 48, left: 48});
   $('#map-status').textContent = '3곳 · 출발지 포함';
   $('#map-status').classList.add('ready');
+  if (pendingPlaceIndex !== null) {
+    const placeIndex = pendingPlaceIndex;
+    pendingPlaceIndex = null;
+    focusCoursePlace(placeIndex);
+  }
+}
+
+function focusCoursePlace(index) {
+  if (!courseMap || !courseMarkers[index]) {
+    pendingPlaceIndex = index;
+    loadCourseMap();
+    return;
+  }
+  const place = coursePlaces[index];
+  const marker = courseMarkers[index];
+  courseMap.panTo(marker.getPosition());
+  courseMap.setZoom(16);
+  document.querySelectorAll('.timeline article').forEach(article => {
+    article.classList.toggle('map-selected', Number(article.dataset.placeIndex) === index);
+  });
+  if (!courseInfoWindow) courseInfoWindow = new window.naver.maps.InfoWindow({borderWidth: 0, backgroundColor: 'transparent'});
+  courseInfoWindow.setContent(`<div class="course-map-info"><strong><span>${index + 1}</span>${place.name}</strong><a href="${navigationUrl(place)}">네이버지도 내비 시작</a></div>`);
+  courseInfoWindow.open(courseMap, marker);
+  $('#course-map').scrollIntoView({behavior: 'smooth', block: 'center'});
 }
 
 function loadCourseMap() {
@@ -211,3 +274,4 @@ $('#save-family').onclick = () => {
 render();
 addNaverMapLinks();
 addNavigationButtons();
+addTimelinePlaceBadges();
