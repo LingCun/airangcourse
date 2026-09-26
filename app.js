@@ -33,6 +33,7 @@ let mapLoadPromise = null;
 let courseMarkers = [];
 let courseInfoWindow = null;
 let pendingPlaceIndex = null;
+let courseRouteLine = null;
 
 function show(id) {
   document.querySelectorAll('.view').forEach(view => view.classList.add('hidden'));
@@ -73,20 +74,6 @@ function render() {
   });
 }
 
-function addNaverMapLinks() {
-  [['마들역',0],['정성카츠 공릉점',1],['서울생활사박물관',2],['서울생활사박물관 어린이체험실 옴팡',3],['마들역',4]].forEach(([query,index]) => {
-    const container = document.querySelectorAll('.timeline article')[index].querySelector('div');
-    if (container.querySelector('a')) return;
-    const link = document.createElement('a');
-    link.className = 'naver-map-link';
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.href = 'https://map.naver.com/p/search/' + encodeURIComponent(query);
-    link.textContent = '네이버지도에서 보기';
-    container.append(link);
-  });
-}
-
 function navigationUrl(place) {
   const appName = encodeURIComponent('https://lingcun.github.io/airangcourse/');
   const destination = `dlat=${place.lat}&dlng=${place.lng}&dname=${encodeURIComponent(place.name)}&appname=${appName}`;
@@ -99,16 +86,16 @@ function navigationUrl(place) {
 
 function addNavigationButtons() {
   const navigationLegs = [
-    {article: 0, destination: coursePlaces[1], label: '정성카츠로 내비 시작'},
-    {article: 1, destination: coursePlaces[2], label: '박물관으로 내비 시작'},
-    {article: 3, destination: coursePlaces[0], label: '마들역으로 내비 시작'}
+    {article: 0, destination: coursePlaces[1], label: '정성카츠로 길안내'},
+    {article: 1, destination: coursePlaces[2], label: '박물관으로 길안내'},
+    {article: 3, destination: coursePlaces[0], label: '마들역으로 길안내'}
   ];
   navigationLegs.forEach(({article, destination, label}) => {
     const container = document.querySelectorAll('.timeline article')[article].querySelector('div');
     const button = document.createElement('a');
     button.className = 'naver-navigation-link';
     button.href = navigationUrl(destination);
-    button.textContent = label;
+    button.innerHTML = `<span class="navigation-emoji" aria-hidden="true">🧭</span><span>${label}<small>네이버지도 앱</small></span><span class="navigation-arrow" aria-hidden="true">→</span>`;
     button.setAttribute('aria-label', `네이버지도 앱에서 ${label}`);
     if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       button.addEventListener('click', event => {
@@ -188,6 +175,15 @@ function createCourseMap() {
   const positions = coursePlaces.map(place => new window.naver.maps.LatLng(place.lat, place.lng));
   courseMap = new window.naver.maps.Map('course-map', {center: positions[1], zoom: 12, scaleControl: false});
   const bounds = new window.naver.maps.LatLngBounds();
+  courseRouteLine = new window.naver.maps.Polyline({
+    map: courseMap,
+    path: [positions[0], positions[1], positions[2], positions[0]],
+    strokeColor: '#20a9df',
+    strokeOpacity: 0.82,
+    strokeWeight: 6,
+    strokeLineCap: 'round',
+    strokeLineJoin: 'round'
+  });
   courseMarkers = positions.map((position, index) => {
     bounds.extend(position);
     const marker = new window.naver.maps.Marker({
@@ -226,7 +222,7 @@ function focusCoursePlace(index) {
     article.classList.toggle('map-selected', Number(article.dataset.placeIndex) === index);
   });
   if (!courseInfoWindow) courseInfoWindow = new window.naver.maps.InfoWindow({borderWidth: 0, backgroundColor: 'transparent'});
-  courseInfoWindow.setContent(`<div class="course-map-info"><strong><span>${index + 1}</span>${place.name}</strong><a href="${navigationUrl(place)}">네이버지도 내비 시작</a></div>`);
+  courseInfoWindow.setContent(`<div class="course-map-info"><strong><span>${index + 1}</span>${place.name}</strong><a href="${navigationUrl(place)}"><i aria-hidden="true">🧭</i> 이곳으로 길안내</a></div>`);
   courseInfoWindow.open(courseMap, marker);
   $('#course-map').scrollIntoView({behavior: 'smooth', block: 'center'});
 }
@@ -272,6 +268,5 @@ $('#save-family').onclick = () => {
 };
 
 render();
-addNaverMapLinks();
 addNavigationButtons();
 addTimelinePlaceBadges();
