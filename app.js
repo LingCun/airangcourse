@@ -84,6 +84,47 @@ function addNaverMapLinks() {
   });
 }
 
+function navigationUrl(place) {
+  const appName = encodeURIComponent('https://lingcun.github.io/airangcourse/');
+  const destination = `dlat=${place.lat}&dlng=${place.lng}&dname=${encodeURIComponent(place.name)}&appname=${appName}`;
+  if (/Android/i.test(navigator.userAgent)) {
+    return `intent://navigation?${destination}#Intent;scheme=nmap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.nhn.android.nmap;end`;
+  }
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return `nmap://navigation?${destination}`;
+  return 'https://map.naver.com/p/search/' + encodeURIComponent(place.name);
+}
+
+function addNavigationButtons() {
+  const navigationLegs = [
+    {article: 0, destination: coursePlaces[1], label: '정성카츠로 내비 시작'},
+    {article: 1, destination: coursePlaces[2], label: '박물관으로 내비 시작'},
+    {article: 3, destination: coursePlaces[0], label: '마들역으로 내비 시작'}
+  ];
+  navigationLegs.forEach(({article, destination, label}) => {
+    const container = document.querySelectorAll('.timeline article')[article].querySelector('div');
+    const button = document.createElement('a');
+    button.className = 'naver-navigation-link';
+    button.href = navigationUrl(destination);
+    button.textContent = label;
+    button.setAttribute('aria-label', `네이버지도 앱에서 ${label}`);
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        const clickedAt = Date.now();
+        window.location.href = button.href;
+        window.setTimeout(() => {
+          if (Date.now() - clickedAt < 2000) window.location.href = 'https://itunes.apple.com/app/id311867728?mt=8';
+        }, 1500);
+      });
+    } else if (!/Android/i.test(navigator.userAgent)) {
+      button.target = '_blank';
+      button.rel = 'noopener';
+      button.title = 'PC에서는 목적지의 네이버지도 화면을 엽니다';
+    }
+    container.append(button);
+  });
+}
+
 function setMapFailure() {
   $('#map-status').textContent = '지도 연결을 확인해주세요';
   $('#map-fallback').classList.remove('hidden');
@@ -169,3 +210,4 @@ $('#save-family').onclick = () => {
 
 render();
 addNaverMapLinks();
+addNavigationButtons();
