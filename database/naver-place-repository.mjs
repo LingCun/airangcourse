@@ -24,18 +24,18 @@ const coordinate = value => {
 };
 
 async function searchNaver(query) {
-  const clientId = process.env.NAVER_SEARCH_CLIENT_ID;
-  const clientSecret = process.env.NAVER_SEARCH_CLIENT_SECRET;
+  const clientId = process.env.NAVER_API_HUB_CLIENT_ID;
+  const clientSecret = process.env.NAVER_API_HUB_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     const error = new Error('naver_search_not_configured');
     error.code = 'naver_search_not_configured';
     throw error;
   }
-  const url = new URL('https://openapi.naver.com/v1/search/local.json');
-  url.search = new URLSearchParams({query, display: '5', start: '1', sort: 'comment'});
+  const url = new URL('https://naverapihub.apigw.ntruss.com/search/v1/local');
+  url.search = new URLSearchParams({query, display: '5', start: '1', sort: 'comment', format: 'json'});
   const response = await fetch(url, {headers: {
-    'X-Naver-Client-Id': clientId,
-    'X-Naver-Client-Secret': clientSecret
+    'X-NCP-APIGW-API-KEY-ID': clientId,
+    'X-NCP-APIGW-API-KEY': clientSecret
   }});
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.errorMessage || `naver_search_failed_${response.status}`);
