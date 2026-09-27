@@ -23,10 +23,37 @@ const steps = [
 ];
 
 const coursePlaces = [
-  {name: '마들역', lat: 37.66472, lng: 127.05778},
-  {name: '정성카츠 공릉점', lat: 37.62318, lng: 127.07632},
-  {name: '서울생활사박물관 · 옴팡', lat: 37.6202, lng: 127.0765}
+  {id: '10000000-0000-0000-0000-000000000001', name: '마들역', lat: 37.66472, lng: 127.05778},
+  {id: '10000000-0000-0000-0000-000000000002', name: '정성카츠 공릉점', lat: 37.62318, lng: 127.07632},
+  {id: '10000000-0000-0000-0000-000000000003', name: '서울생활사박물관 · 옴팡', lat: 37.6202, lng: 127.0765}
 ];
+
+async function loadPlaces() {
+  try {
+    const {places} = await apiRequest('/api/places');
+    const order = coursePlaces.map(place => place.id);
+    const byId = new Map(places.map(place => [place.id, place]));
+    const loaded = order.map(id => byId.get(id)).filter(Boolean).map(place => ({
+      id: place.id, name: place.name, lat: Number(place.latitude), lng: Number(place.longitude)
+    }));
+    if (loaded.length === order.length) coursePlaces.splice(0, coursePlaces.length, ...loaded);
+  } catch (error) { console.warn('Places unavailable', error); }
+}
+
+async function apiRequest(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: 'same-origin',
+    ...options,
+    headers: {'content-type': 'application/json', ...(options.headers || {})}
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || 'request_failed');
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}
 
 let courseMap = null;
 let mapLoadPromise = null;
@@ -143,6 +170,28 @@ function addTimelinePlaceBadges() {
     };
     item.addEventListener('click', activate);
     item.addEventListener('keydown', activate);
+  });
+}
+
+function addFavoriteButtons() {
+  const targets = [{article: 1, place: 1}, {article: 3, place: 2}];
+  const articles = document.querySelectorAll('.timeline article');
+  targets.forEach(({article, place}) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'favorite-place-button';
+    button.textContent = '♡ 찜하기';
+    button.onclick = async event => {
+      event.stopPropagation();
+      button.disabled = true;
+      try {
+        await apiRequest('/api/favorites', {method: 'POST', body: JSON.stringify({placeId: coursePlaces[place].id})});
+        button.textContent = '♥ 찜 완료';
+      } catch (error) {
+        button.textContent = error.status === 401 ? '로그인 후 찜하기' : '다시 시도해주세요';
+      } finally { button.disabled = false; }
+    };
+    articles[article].querySelector('div').append(button);
   });
 }
 
@@ -290,26 +339,146 @@ $('[data-nav="home"]').onclick = () => { drawer.classList.add('hidden'); show('#
 $('[data-nav="new"]').onclick = () => { drawer.classList.add('hidden'); start(); };
 $('[data-nav="recent"]').onclick = () => { drawer.classList.add('hidden'); show('#result'); };
 const modal = $('#family-modal');
-$('#open-family').onclick = () => { drawer.classList.add('hidden'); modal.classList.remove('hidden'); };
+$('#open-family').onclick = async () => {
+  drawer.classList.add('hidden');
+  modal.classList.remove('hidden');
+  try {
+    const {family} = await apiRequest('/api/family');
+    if (!family) return;
+    $('#adults').value = family.adult_count;
+    $('#children').value = family.children.length;
+    if (family.children[0]?.birth_year) $('#child-age').value = new Date().getFullYear() - family.children[0].birth_year;
+    $('#mobility-aid').value = family.mobility_aid || 'none';
+  } catch (error) {
+    if (error.status !== 401) $('#family-save-status').textContent = '가족 정보를 불러오지 못했습니다.';
+  }
+};
 $('#close-family').onclick = () => modal.classList.add('hidden');
-$('#save-family').onclick = () => {
-  state.adults = $('#adults').value;
-  state.children = $('#children').value;
-  state.age = $('#child-age').value;
-  $('#family-summary').textContent = `성인 ${state.adults}명 · ${state.age}세 아이 ${state.children}명`;
-  modal.classList.add('hidden');
+$('#save-family').onclick = async () => {
+  const button = $('#save-family');
+  button.disabled = true;
+  $('#family-save-status').textContent = '저장 중입니다.';
+  try {
+    const preferenceCodes = {'실내 중심': 'indoor', '야외 활동': 'outdoor', '가성비': 'value', '무료 중심': 'free', '역할놀이': 'role_play', '특별한 체험': 'experience'};
+    const input = {
+      adultCount: Number($('#adults').value), childCount: Number($('#children').value),
+      childAge: Number($('#child-age').value), mobilityAid: $('#mobility-aid').value,
+      preferences: state.prefs.map(value => preferenceCodes[value]).filter(Boolean)
+    };
+    await apiRequest('/api/family', {method: 'PUT', body: JSON.stringify(input)});
+    state.adults = input.adultCount; state.children = input.childCount; state.age = input.childAge;
+    $('#family-summary').textContent = `성인 ${state.adults}명 · ${state.age}세 아이 ${state.children}명`;
+    $('#family-save-status').textContent = '가족 정보를 저장했습니다.';
+    window.setTimeout(() => modal.classList.add('hidden'), 500);
+  } catch (error) {
+    $('#family-save-status').textContent = error.status === 401 ? '로그인 후 저장할 수 있습니다.' : '저장하지 못했습니다. 다시 시도해주세요.';
+  } finally { button.disabled = false; }
+};
+
+$('#save-course').onclick = async () => {
+  const button = $('#save-course');
+  button.disabled = true;
+  $('#course-save-status').textContent = '코스를 저장하는 중입니다.';
+  try {
+    const stops = [
+      {placeId: coursePlaces[0].id, kind: 'origin', name: coursePlaces[0].name, latitude: coursePlaces[0].lat, longitude: coursePlaces[0].lng, arrivalAt: state.start},
+      {placeId: coursePlaces[1].id, kind: 'place', name: coursePlaces[1].name, latitude: coursePlaces[1].lat, longitude: coursePlaces[1].lng, arrivalAt: '12:25', estimatedCost: 28800},
+      {placeId: coursePlaces[2].id, kind: 'place', name: coursePlaces[2].name, latitude: coursePlaces[2].lat, longitude: coursePlaces[2].lng, arrivalAt: '13:40', estimatedCost: 0},
+      {placeId: coursePlaces[0].id, kind: 'destination', name: coursePlaces[0].name, latitude: coursePlaces[0].lat, longitude: coursePlaces[0].lng, arrivalAt: '17:45'}
+    ];
+    await apiRequest('/api/courses', {method: 'POST', body: JSON.stringify({
+      title: `${state.region} 우리 가족 맞춤 코스`, travelDate: state.date, region: state.region,
+      transport: state.transport === '대중교통' ? 'public_transit' : state.transport === '도보' ? 'walk' : 'car',
+      startsAt: state.start, endsAt: state.end, budget: state.budget,
+      inputSnapshot: {adults: state.adults, children: state.children, age: state.age, preferences: state.prefs}, stops
+    })});
+    $('#course-save-status').textContent = '코스를 저장했습니다.';
+    button.textContent = '저장 완료';
+  } catch (error) {
+    $('#course-save-status').textContent = error.status === 401 ? '로그인 후 저장할 수 있습니다.' : '코스를 저장하지 못했습니다.';
+  } finally { button.disabled = false; }
 };
 const loginModal = $('#login-modal');
 $('#open-login').onclick = () => { drawer.classList.add('hidden'); loginModal.classList.remove('hidden'); };
 $('#close-login').onclick = () => loginModal.classList.add('hidden');
+$('#continue-as-guest').onclick = () => loginModal.classList.add('hidden');
 loginModal.onclick = event => { if (event.target === loginModal) loginModal.classList.add('hidden'); };
 document.querySelectorAll('[data-provider]').forEach(button => {
   button.onclick = () => {
-    $('#login-note').textContent = `${button.dataset.provider} OAuth 키를 연결하면 실제 로그인이 시작됩니다.`;
-    $('#login-note').classList.add('login-note-active');
+    window.location.href = `/api/auth?action=${button.dataset.provider.toLowerCase()}-start`;
   };
 });
+
+const favoritesModal = $('#favorites-modal');
+$('#open-favorites').onclick = async () => {
+  drawer.classList.add('hidden');
+  favoritesModal.classList.remove('hidden');
+  const list = $('#favorites-list');
+  list.replaceChildren();
+  const loading = document.createElement('p');
+  loading.textContent = '저장한 장소를 불러오는 중입니다.';
+  list.append(loading);
+  try {
+    const {places} = await apiRequest('/api/favorites');
+    list.replaceChildren();
+    if (!places.length) {
+      const empty = document.createElement('p'); empty.textContent = '아직 찜한 장소가 없습니다.'; list.append(empty); return;
+    }
+    places.forEach(place => {
+      const item = document.createElement('article');
+      const copy = document.createElement('div');
+      const name = document.createElement('strong'); name.textContent = place.name;
+      const category = document.createElement('small'); category.textContent = place.category || '장소';
+      const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '삭제';
+      copy.append(name, category); item.append(copy, remove); list.append(item);
+      remove.onclick = async () => {
+        await apiRequest(`/api/favorites?placeId=${encodeURIComponent(place.id)}`, {method: 'DELETE'});
+        item.remove();
+      };
+    });
+  } catch (error) {
+    list.replaceChildren();
+    const message = document.createElement('p');
+    message.textContent = error.status === 401 ? '로그인 후 찜한 장소를 볼 수 있습니다.' : '찜한 장소를 불러오지 못했습니다.';
+    list.append(message);
+  }
+};
+$('#close-favorites').onclick = () => favoritesModal.classList.add('hidden');
+favoritesModal.onclick = event => { if (event.target === favoritesModal) favoritesModal.classList.add('hidden'); };
+
+async function loadSession() {
+  try {
+    const response = await fetch('/api/auth?action=session', {credentials: 'same-origin'});
+    if (!response.ok) return;
+    const {user} = await response.json();
+    if (!user) return;
+    const loginCard = $('#open-login');
+    loginCard.classList.add('signed-in');
+    loginCard.innerHTML = `<span class="login-avatar">${user.picture ? `<img src="${user.picture}" alt="">` : '✓'}</span><span><strong>${user.name || '로그인 사용자'}</strong><small>${user.provider === 'naver' ? 'NAVER' : 'Google'} 계정으로 로그인됨</small></span><i>›</i>`;
+    loginCard.onclick = () => { window.location.href = '/api/auth?action=logout'; };
+    loadSavedSummary();
+  } catch (error) {
+    console.warn('Session unavailable', error);
+  }
+}
+
+async function loadSavedSummary() {
+  try {
+    const {courses} = await apiRequest('/api/courses');
+    if (!courses.length) return;
+    const latest = courses[0];
+    const recent = document.querySelector('.recent-card');
+    recent.querySelector('h2').textContent = latest.title;
+    recent.querySelector('p:last-child').textContent = `${String(latest.travel_date || '').slice(0, 10)} · ${latest.stop_count}곳 · 저장된 코스`;
+  } catch (error) {
+    if (error.status !== 401) console.warn('Saved courses unavailable', error);
+  }
+}
+
+loadSession();
 
 render();
 addNavigationButtons();
 addTimelinePlaceBadges();
+addFavoriteButtons();
+loadPlaces();
