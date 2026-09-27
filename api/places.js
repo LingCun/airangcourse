@@ -9,7 +9,9 @@ export default async function handler(req, res) {
              p.min_age,p.max_age,p.price_min,p.price_max,
              (SELECT group_concat(pf.facility_code ORDER BY pf.facility_code)
               FROM place_facilities pf WHERE pf.place_id=p.id) AS facilities
-      FROM places p WHERE p.is_active=true ORDER BY p.name
+      FROM places p
+      WHERE p.is_active=true AND p.naver_place_id IS NOT NULL
+      ORDER BY p.name
     `);
     return json(res, 200, {places: rows.map(row => ({...row, facilities: row.facilities?.split(',') || []}))});
   } catch (error) { return handleError(res, error); }
