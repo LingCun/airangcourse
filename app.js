@@ -33,8 +33,7 @@ let mapLoadPromise = null;
 let courseMarkers = [];
 let courseInfoWindow = null;
 let pendingPlaceIndex = null;
-let courseRouteLine = null;
-let courseRouteOutline = null;
+let courseRouteLines = [];
 
 function show(id) {
   document.querySelectorAll('.view').forEach(view => view.classList.add('hidden'));
@@ -202,40 +201,40 @@ function createCourseMap() {
 }
 
 async function loadRoadRoute() {
-  const coordinates = coursePlaces.map(place => `${place.lng},${place.lat}`);
-  coordinates.push(coordinates[0]);
-  const url = `https://router.project-osrm.org/route/v1/driving/${coordinates.join(';')}?overview=full&geometries=geojson&steps=false`;
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Road route request failed');
-    const data = await response.json();
-    const routeCoordinates = data.routes?.[0]?.geometry?.coordinates;
-    if (!routeCoordinates?.length) throw new Error('Road route is empty');
-    const path = routeCoordinates.map(([lng, lat]) => new window.naver.maps.LatLng(lat, lng));
+    const fetchRoadPath = async places => {
+      const coordinates = places.map(place => `${place.lng},${place.lat}`).join(';');
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson&steps=false`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Road route request failed');
+      const data = await response.json();
+      const routeCoordinates = data.routes?.[0]?.geometry?.coordinates;
+      if (!routeCoordinates?.length) throw new Error('Road route is empty');
+      return routeCoordinates.map(([lng, lat]) => new window.naver.maps.LatLng(lat, lng));
+    };
+    const [outboundPath, returnPath] = await Promise.all([
+      fetchRoadPath(coursePlaces),
+      fetchRoadPath([coursePlaces[2], coursePlaces[0]])
+    ]);
     const routeBounds = new window.naver.maps.LatLngBounds();
-    path.forEach(position => routeBounds.extend(position));
-    courseRouteOutline = new window.naver.maps.Polyline({
-      map: courseMap,
-      path,
-      strokeColor: '#ffffff',
-      strokeOpacity: 0.96,
-      strokeWeight: 9,
-      strokeLineCap: 'round',
-      strokeLineJoin: 'round'
-    });
-    courseRouteLine = new window.naver.maps.Polyline({
-      map: courseMap,
-      path,
-      strokeColor: '#20a9df',
-      strokeOpacity: 0.95,
-      strokeWeight: 5,
-      strokeLineCap: 'round',
-      strokeLineJoin: 'round'
-    });
+    [...outboundPath, ...returnPath].forEach(position => routeBounds.extend(position));
+    const drawRoute = (path, color) => {
+      const outline = new window.naver.maps.Polyline({
+        map: courseMap, path, strokeColor: '#ffffff', strokeOpacity: 0.96,
+        strokeWeight: 9, strokeLineCap: 'round', strokeLineJoin: 'round'
+      });
+      const line = new window.naver.maps.Polyline({
+        map: courseMap, path, strokeColor: color, strokeOpacity: 0.95,
+        strokeWeight: 5, strokeLineCap: 'round', strokeLineJoin: 'round'
+      });
+      courseRouteLines.push(outline, line);
+    };
+    drawRoute(outboundPath, '#20a9df');
+    drawRoute(returnPath, '#f39a67');
     if (!document.querySelector('.timeline article.map-selected')) {
       courseMap.fitBounds(routeBounds, {top: 48, right: 48, bottom: 48, left: 48});
     }
-    $('#map-status').textContent = '자동차 도로 경로 · 출발지 포함';
+    $('#map-status').textContent = '가는 길 · 오는 길';
   } catch (error) {
     console.warn('Road route unavailable', error);
     $('#map-status').textContent = '장소 위치 · 경로 확인 필요';
@@ -300,6 +299,16 @@ $('#save-family').onclick = () => {
   $('#family-summary').textContent = `성인 ${state.adults}명 · ${state.age}세 아이 ${state.children}명`;
   modal.classList.add('hidden');
 };
+const loginModal = $('#login-modal');
+$('#open-login').onclick = () => { drawer.classList.add('hidden'); loginModal.classList.remove('hidden'); };
+$('#close-login').onclick = () => loginModal.classList.add('hidden');
+loginModal.onclick = event => { if (event.target === loginModal) loginModal.classList.add('hidden'); };
+document.querySelectorAll('[data-provider]').forEach(button => {
+  button.onclick = () => {
+    $('#login-note').textContent = `${button.dataset.provider} OAuth 키를 연결하면 실제 로그인이 시작됩니다.`;
+    $('#login-note').classList.add('login-note-active');
+  };
+});
 
 render();
 addNavigationButtons();
