@@ -1,5 +1,6 @@
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
+const serviceOrigin = location.hostname.endsWith('github.io') ? 'https://airangcourse.vercel.app' : '';
 const preferenceLabels = new Map();
 const facilityLabels = new Map();
 let currentUser = null;
@@ -299,7 +300,7 @@ $('#save-family').onclick = async () => {
 const loginModal = $('#login-modal');
 $('#open-login').onclick = () => { drawer.classList.add('hidden'); loginModal.classList.remove('hidden'); };
 $('#close-login').onclick = $('#continue-as-guest').onclick = () => loginModal.classList.add('hidden');
-$$('[data-provider]').forEach(button => { button.onclick = () => { location.href = `/api/auth?action=${button.dataset.provider}-start`; }; });
+$$('[data-provider]').forEach(button => { button.onclick = () => { location.href = `${serviceOrigin}/api/auth?action=${button.dataset.provider}-start`; }; });
 
 const favoritesModal = $('#favorites-modal');
 $('#open-favorites').onclick = async () => {
