@@ -43,4 +43,34 @@ header{position:sticky;top:0;z-index:5}.brand{border:0;background:transparent;pa
 @media(max-width:700px){.route-summary{align-items:flex-start}.course-map-head{gap:10px}.route-legend{order:2}}
 .login-avatar img{width:100%;height:100%;border-radius:inherit;object-fit:cover}.login-card.signed-in{background:#f5fff9;border-color:#cdeedb}
 .optional-label{display:inline-block!important;margin:0 0 9px!important;border-radius:20px;background:#eaf7fd;padding:5px 10px;color:#188bb9!important;font-size:11px!important;font-weight:850}.guest-login{width:100%;margin-top:11px;border:0;background:transparent;padding:12px;color:#607482;font-weight:800;text-decoration:underline;text-underline-offset:4px}.guest-login:hover{color:#188bb9}
+
+/* 아이랑코스 전용 로그인 */
+.login-modal-card{width:min(470px,100%);overflow:hidden;padding:0 30px 24px;border:1px solid #d9edf5;background:#fff;box-shadow:0 24px 70px rgba(40,104,130,.22)}
+.login-modal-card .modal-close{top:17px;right:18px;z-index:3;background:rgba(255,255,255,.88);box-shadow:0 3px 12px rgba(38,100,124,.12)}
+.login-brand{display:flex;align-items:center;justify-content:center;gap:12px;padding:24px 44px 17px}
+.login-brand img{width:132px;height:auto}
+.login-brand span{border-left:1px solid #dcebf1;padding-left:12px;color:#7a919c;font-size:11px;font-weight:750;white-space:nowrap}
+.login-visual{position:relative;height:146px;margin:0 -30px 23px;overflow:hidden;background:linear-gradient(180deg,#e8f8ff 0%,#f7fcff 78%,#fff 100%)}
+.login-visual::after{content:"";position:absolute;left:-5%;right:-5%;bottom:-31px;height:68px;border-radius:50%;background:#fff}
+.login-visual>strong{position:absolute;z-index:2;left:30px;bottom:23px;color:#267f9f;font-size:12px;letter-spacing:-.02em}
+.login-cloud{position:absolute;width:44px;height:14px;border-radius:18px;background:rgba(255,255,255,.9)}
+.login-cloud::before,.login-cloud::after{content:"";position:absolute;bottom:0;border-radius:50%;background:inherit}
+.login-cloud::before{left:8px;width:20px;height:20px}.login-cloud::after{right:7px;width:15px;height:15px}
+.cloud-one{top:23px;left:40px}.cloud-two{top:39px;right:42px;transform:scale(.78)}
+.login-route{position:absolute;left:70px;right:76px;top:52px;height:50px;border-top:4px solid #64bedf;border-radius:50% 50% 0 0;transform:rotate(-5deg)}
+.login-route b{position:absolute;top:-8px;width:13px;height:13px;border:3px solid #fff;border-radius:50%;background:#2fa4d0;box-shadow:0 2px 7px rgba(33,135,174,.2)}
+.login-route b:nth-child(1){left:-5px}.login-route b:nth-child(2){left:48%;top:-19px;background:#ffc15a}.login-route b:nth-child(3){right:-5px;top:4px;background:#f07d72}
+.login-family{position:absolute;z-index:2;right:42px;bottom:27px;display:flex;align-items:flex-end}
+.login-family span{display:grid;place-items:center;width:42px;height:42px;border:4px solid #fff;border-radius:50%;background:#69c3df;color:#fff;font-size:0;box-shadow:0 5px 15px rgba(37,125,155,.16)}
+.login-family span::before{content:"";width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 12px 0 5px #fff}
+.login-family span+span{width:34px;height:34px;margin-left:-8px;background:#ffc15a}
+.login-family span+span::before{width:10px;height:10px;box-shadow:0 10px 0 4px #fff}
+.login-copy h2{margin:0;color:#203b48;font-size:25px;line-height:1.35;letter-spacing:-.04em}
+.login-copy>p:not(.optional-label){margin:12px auto 0;max-width:330px;color:#718793;font-size:13px;line-height:1.65}
+.login-modal-card .social-login{margin-top:22px}
+.login-modal-card .social-login button{transition:transform .15s ease,box-shadow .15s ease}
+.login-modal-card .social-login button:hover{transform:translateY(-1px);box-shadow:0 6px 15px rgba(39,91,111,.1)}
+.login-modal-card .guest-login{margin-top:8px;border-radius:12px;background:#f1f9fc;text-decoration:none}
+.login-modal-card .login-note{margin-top:11px}
+@media(max-width:520px){.login-modal-card{padding:0 22px 20px}.login-brand{justify-content:flex-start;padding:21px 38px 15px 0}.login-brand img{width:120px}.login-brand span{display:none}.login-visual{height:132px;margin:0 -22px 20px}.login-visual>strong{left:23px}.login-family{right:28px}.login-copy h2{font-size:23px}.login-copy>p:not(.optional-label){font-size:12px}}
 .favorite-place-button{margin-top:10px;border:1px solid #cfe7f1;border-radius:9px;background:#f6fbfd;padding:7px 10px;color:#168cb8;font-size:12px;font-weight:800}.favorite-place-button:disabled{opacity:.65}#favorites-list{display:grid;gap:10px;margin-top:18px}#favorites-list>article{display:flex;align-items:center;justify-content:space-between;border:1px solid #e1edf2;border-radius:13px;padding:13px}#favorites-list>article div{display:grid;gap:4px}#favorites-list small{color:#718493}#favorites-list button{border:0;background:transparent;color:#8a9aa5}
