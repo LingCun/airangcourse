@@ -1,0 +1,17 @@
+{
+  "name": "airangcourse",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:verify": "node database/verify-schema.mjs",
+    "db:migrate": "node database/migrate.mjs",
+    "db:status": "node database/status.mjs"
+  },
+  "dependencies": {
+    "mariadb": "^3.4.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

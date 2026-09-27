@@ -1,0 +1,20 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: airangcourse
+      MARIADB_USER: airangcourse
+      MARIADB_PASSWORD: airangcourse
+      MARIADB_ROOT_PASSWORD: local-root-only
+    ports:
+      - "3306:3306"
+    volumes:
+      - airangcourse_mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  airangcourse_mariadb:
