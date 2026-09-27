@@ -95,7 +95,7 @@ function addNavigationButtons() {
     const button = document.createElement('a');
     button.className = 'naver-navigation-link';
     button.href = navigationUrl(destination);
-    button.innerHTML = `<span class="navigation-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13m-5-5 5 5-5 5"/></svg></span><span>${label}<small>네이버지도 앱</small></span>`;
+    button.innerHTML = `<span class="navigation-icon" aria-hidden="true">N</span><span>${label}</span><span class="navigation-chevron" aria-hidden="true">›</span>`;
     button.setAttribute('aria-label', `네이버지도 앱에서 ${label}`);
     if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       button.addEventListener('click', event => {
@@ -222,7 +222,7 @@ function focusCoursePlace(index) {
     article.classList.toggle('map-selected', Number(article.dataset.placeIndex) === index);
   });
   if (!courseInfoWindow) courseInfoWindow = new window.naver.maps.InfoWindow({borderWidth: 0, backgroundColor: 'transparent'});
-  courseInfoWindow.setContent(`<div class="course-map-info"><strong><span>${index + 1}</span>${place.name}</strong><a href="${navigationUrl(place)}"><i aria-hidden="true">→</i> 이곳으로 길안내</a></div>`);
+  courseInfoWindow.setContent(`<div class="course-map-info"><strong><span>${index + 1}</span>${place.name}</strong><a href="${navigationUrl(place)}"><i aria-hidden="true">N</i> 이곳으로 길안내</a></div>`);
   courseInfoWindow.open(courseMap, marker);
   $('#course-map').scrollIntoView({behavior: 'smooth', block: 'center'});
 }
