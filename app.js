@@ -173,7 +173,7 @@ function renderResult() {
   const timeline = $('#timeline');
   timeline.replaceChildren(...currentStops.map((stop, index) => {
     const article = document.createElement('article');
-    if (index > 0 && index < currentStops.length - 1) article.classList.add(index === 2 ? 'featured' : '');
+    if (index === 2 && index < currentStops.length - 1) article.classList.add('featured');
     const details = stop.kind === 'origin' ? '코스 출발지' : stop.kind === 'destination' ? '여유 있게 귀가하세요' : [stop.category, ...stop.facilities.map(code => facilityLabels.get(code) || code)].filter(Boolean).join(' · ');
     article.innerHTML = `<time>${stop.arrivalAt || ''}</time><div><h3><span class="timeline-place-badge">${index + 1}</span>${stop.name}</h3><p>${details || '장소 상세 정보 확인 필요'}</p>${stop.estimatedCost != null ? `<b>${Number(stop.estimatedCost) ? money(stop.estimatedCost) : '무료'}</b>` : ''}<a class="naver-navigation-link" href="${navigationUrl(stop)}" target="_blank" rel="noopener"><span class="navigation-icon">N</span><span>네이버지도에서 보기</span></a>${stop.kind === 'place' ? '<button type="button" class="favorite-place-button">♡ 찜하기</button>' : ''}</div>`;
     const favorite = article.querySelector('.favorite-place-button');
