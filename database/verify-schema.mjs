@@ -17,7 +17,8 @@ const requiredTables = [
   'users', 'auth_identities', 'user_sessions', 'oauth_states',
   'families', 'family_members', 'children', 'family_preferences',
   'places', 'place_facilities', 'place_hours', 'courses',
-  'course_stops', 'favorite_places', 'consent_records'
+  'course_stops', 'favorite_places', 'consent_records',
+  'login_events', 'page_view_events'
 ];
 
 for (const table of requiredTables) {

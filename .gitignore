@@ -1,5 +1,7 @@
 wizard-menu-mockup.html
 .env
+.env.*
+!.env.example
 node_modules/
 
 .vercel

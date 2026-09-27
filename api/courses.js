@@ -11,6 +11,20 @@ export default async function handler(req, res) {
     const user = await requireUser(req);
     connection = await getPool().getConnection();
     if (req.method === 'GET') {
+      if (req.query.id) {
+        const rows = await connection.query(`
+          SELECT c.id,c.title,c.status,c.travel_date,c.region,c.transport,c.starts_at,c.ends_at,
+                 c.budget,c.estimated_cost,c.input_snapshot,c.updated_at
+          FROM courses c WHERE c.id=? AND c.user_id=? LIMIT 1
+        `, [req.query.id, user.user_id]);
+        if (!rows[0]) throw new ApiError(404, 'course_not_found');
+        const stops = await connection.query(`
+          SELECT id,place_id,position,kind,name_snapshot,latitude_snapshot,longitude_snapshot,
+                 arrival_at,departure_at,estimated_cost,memo,metadata
+          FROM course_stops WHERE course_id=? ORDER BY position
+        `, [rows[0].id]);
+        return json(res, 200, {course: {...rows[0], stops}});
+      }
       const rows = await connection.query(`
         SELECT c.id,c.title,c.status,c.travel_date,c.region,c.transport,c.starts_at,c.ends_at,
                c.budget,c.estimated_cost,c.updated_at,

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>아이랑코스 관리자</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/"><img src="assets/airangcourse-logo.svg" alt="아이랑코스"></a>
+    <p class="workspace">ADMIN CONSOLE</p>
+    <nav>
+      <button class="active" data-section="overview"><span>⌁</span>운영 현황</button>
+      <button data-section="pages"><span>▦</span>화면 조회 이력</button>
+      <button data-section="logins"><span>↳</span>로그인 이력</button>
+    </nav>
+    <a class="back-link" href="/">← 서비스로 돌아가기</a>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div><p>아이랑코스 운영센터</p><h1 id="section-title">운영 현황</h1></div>
+      <div class="top-actions">
+        <label>조회 기간<select id="range"><option value="1">오늘</option><option value="7" selected>최근 7일</option><option value="30">최근 30일</option><option value="90">최근 90일</option></select></label>
+        <button id="refresh">새로고침</button>
+        <div class="admin-user"><span id="admin-initial">A</span><div><b id="admin-name">관리자</b><small id="admin-email"></small></div></div>
+      </div>
+    </header>
+
+    <div id="loading" class="state-card">운영 데이터를 불러오고 있습니다.</div>
+    <div id="error" class="state-card error hidden"><b>데이터를 불러오지 못했습니다.</b><p id="error-message"></p><a href="/">서비스에서 관리자 계정으로 로그인하기</a></div>
+
+    <section id="dashboard" class="hidden">
+      <div class="metric-grid">
+        <article><span class="metric-icon blue">↗</span><p>전체 화면 조회</p><strong id="metric-views">0</strong><small>선택 기간 내 누적 조회</small></article>
+        <article><span class="metric-icon teal">◎</span><p>순 방문자</p><strong id="metric-visitors">0</strong><small>브라우저 식별값 기준</small></article>
+        <article><span class="metric-icon navy">✓</span><p>로그인 성공</p><strong id="metric-logins">0</strong><small>Google · NAVER</small></article>
+        <article><span class="metric-icon coral">!</span><p>로그인 실패</p><strong id="metric-failures">0</strong><small>확인이 필요한 인증 오류</small></article>
+      </div>
+
+      <div class="panel-grid overview-only">
+        <article class="panel chart-panel"><div class="panel-head"><div><p>방문 추이</p><h2>일별 조회와 방문자</h2></div><div class="legend"><span><i class="views"></i>조회</span><span><i class="visitors"></i>방문자</span></div></div><div id="trend-chart" class="chart"></div></article>
+        <article class="panel ranking-panel"><div class="panel-head"><div><p>화면 성과</p><h2>많이 본 화면</h2></div></div><div id="page-ranking"></div></article>
+      </div>
+
+      <article class="panel table-panel" id="pages-panel">
+        <div class="panel-head"><div><p>PAGE VIEWS</p><h2>화면별 조회 이력</h2></div><input id="page-search" type="search" placeholder="화면명 또는 경로 검색"></div>
+        <div class="table-wrap"><table><thead><tr><th>조회 시각</th><th>화면</th><th>경로</th><th>방문자 ID</th><th>IP</th></tr></thead><tbody id="view-rows"></tbody></table></div>
+      </article>
+
+      <article class="panel table-panel" id="logins-panel">
+        <div class="panel-head"><div><p>AUTHENTICATION</p><h2>로그인 이력</h2></div><select id="login-filter"><option value="">전체 상태</option><option value="success">성공</option><option value="failure">실패</option><option value="started">시작</option><option value="logout">로그아웃</option></select></div>
+        <div class="table-wrap"><table><thead><tr><th>발생 시각</th><th>사용자</th><th>제공자</th><th>상태</th><th>접속 IP</th><th>상세</th></tr></thead><tbody id="login-rows"></tbody></table></div>
+      </article>
+    </section>
+  </main>
+  <script src="admin.js"></script>
+</body>
+</html>

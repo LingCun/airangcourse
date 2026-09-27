@@ -93,7 +93,8 @@ export async function findSession(token) {
   if (!token) return null;
   const rows = await getPool().query(`
     SELECT s.id AS session_id, s.user_id, s.expires_at,
-           u.display_name, u.email, u.avatar_url
+           u.display_name, u.email, u.avatar_url,
+           (SELECT ai.provider FROM auth_identities ai WHERE ai.user_id=u.id ORDER BY ai.last_login_at DESC LIMIT 1) AS provider
     FROM user_sessions s
     JOIN users u ON u.id=s.user_id
     WHERE s.refresh_token_hash=? AND s.revoked_at IS NULL

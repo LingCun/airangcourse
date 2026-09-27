@@ -1,4 +1,6 @@
 import crypto from 'node:crypto';
+import {recordLoginEvent} from '../database/audit-repository.mjs';
+import {createSession, findOrCreateSocialUser, findSession, revokeSession} from '../database/auth-repository.mjs';
 
 const cookieName = 'airang_session';
 const stateCookieName = 'airang_oauth_state';
@@ -16,9 +18,14 @@ const cookies = req => Object.fromEntries((req.headers.cookie || '').split(';').
   const [key, ...parts] = item.trim().split('=');
   return [key, decodeURIComponent(parts.join('='))];
 }));
-const setCookie = (res, name, value, maxAge) => res.setHeader('Set-Cookie', `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`);
+const setCookie = (res, name, value, maxAge) => {
+  const cookie = `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+  const current = res.getHeader('Set-Cookie');
+  res.setHeader('Set-Cookie', current ? [...(Array.isArray(current) ? current : [current]), cookie] : cookie);
+};
 const redirect = (res, url) => { res.statusCode = 302; res.setHeader('Location', url); res.end(); };
 const appUrl = req => process.env.APP_URL || `https://${req.headers.host}`;
+const audit = (req, event) => recordLoginEvent(req, event).catch(error => console.error('audit log failed', error));
 
 async function googleProfile(code, callback) {
   const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -51,6 +58,7 @@ export default async function handler(req, res) {
   try {
     if (action === 'google-start' || action === 'naver-start') {
       const provider = action.split('-')[0];
+      await audit(req, {provider, result: 'started'});
       const state = crypto.randomBytes(24).toString('base64url');
       setCookie(res, stateCookieName, pack({state, provider, exp: Date.now() + 600000}), 600);
       const url = provider === 'google' ? new URL('https://accounts.google.com/o/oauth2/v2/auth') : new URL('https://nid.naver.com/oauth2.0/authorize');
@@ -66,18 +74,35 @@ export default async function handler(req, res) {
       const user = stored.provider === 'google'
         ? {provider: 'google', id: profile.sub, name: profile.name, email: profile.email, picture: profile.picture}
         : {provider: 'naver', id: profile.id, name: profile.name || profile.nickname, email: profile.email, picture: profile.profile_image};
-      setCookie(res, cookieName, pack({...user, exp: Date.now() + 604800000}), 604800);
+      const databaseUser = await findOrCreateSocialUser(user);
+      const session = await createSession(databaseUser.id, {
+        userAgent: req.headers['user-agent'] || null,
+        ipAddress: String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim() || null
+      });
+      await audit(req, {userId: databaseUser.id, provider: user.provider, email: user.email, result: 'success'});
+      setCookie(res, cookieName, session.token, session.maxAge);
+      setCookie(res, stateCookieName, '', 0);
       return redirect(res, `${origin}/?login=success`);
     }
     if (action === 'session') {
-      const session = unpack(cookies(req)[cookieName]);
+      const session = await findSession(cookies(req)[cookieName]);
       res.setHeader('content-type', 'application/json; charset=utf-8');
-      return res.end(JSON.stringify({user: session?.exp > Date.now() ? session : null}));
+      return res.end(JSON.stringify({user: session ? {
+        id: session.user_id, name: session.display_name, email: session.email,
+        picture: session.avatar_url, provider: session.provider
+      } : null}));
     }
-    if (action === 'logout') { setCookie(res, cookieName, '', 0); return redirect(res, origin); }
+    if (action === 'logout') {
+      const token = cookies(req)[cookieName];
+      const session = await findSession(token);
+      await audit(req, {provider: session?.provider, email: session?.email, result: 'logout'});
+      await revokeSession(token);
+      setCookie(res, cookieName, '', 0); return redirect(res, origin);
+    }
     res.statusCode = 400; res.end('Unknown auth action');
   } catch (error) {
     console.error(error);
+    await audit(req, {provider: action?.startsWith('naver') ? 'naver' : action?.startsWith('google') ? 'google' : undefined, result: 'failure', reason: error.message});
     return redirect(res, `${origin}/?login=error`);
   }
 }
