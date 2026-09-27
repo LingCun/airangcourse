@@ -4,15 +4,19 @@ import {handleError, json, methodNotAllowed} from './_shared/http.mjs';
 export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
+    const region = String(req.query.region || '').trim();
+    const regionTerm = region.split(/\s+/).filter(Boolean).at(-1) || '';
+    const regionFilter = regionTerm ? ' AND (p.road_address LIKE ? OR p.jibun_address LIKE ?)' : '';
+    const parameters = regionTerm ? [`%${regionTerm}%`, `%${regionTerm}%`] : [];
     const rows = await getPool().query(`
       SELECT p.id,p.naver_place_id,p.name,p.category,p.road_address,p.latitude,p.longitude,
              p.min_age,p.max_age,p.price_min,p.price_max,
              (SELECT group_concat(pf.facility_code ORDER BY pf.facility_code)
               FROM place_facilities pf WHERE pf.place_id=p.id) AS facilities
       FROM places p
-      WHERE p.is_active=true AND p.naver_place_id IS NOT NULL
+      WHERE p.is_active=true AND p.naver_place_id IS NOT NULL${regionFilter}
       ORDER BY p.name
-    `);
+    `, parameters);
     return json(res, 200, {places: rows.map(row => ({...row, facilities: row.facilities?.split(',') || []}))});
   } catch (error) { return handleError(res, error); }
 }

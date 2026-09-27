@@ -263,7 +263,25 @@ async function loadSession() {
 }
 
 $('.start-course').onclick = () => { if (!requireLogin('맞춤 코스는 로그인 후 가족 정보와 함께 만들 수 있어요.')) return; state.step = 0; renderStep(); show('#wizard-view'); };
-$('#next-step').onclick = () => { capture(); if (state.step < 3) { state.step += 1; renderStep(); } else renderResult(); };
+$('#next-step').onclick = async () => {
+  capture();
+  if (state.step < 3) { state.step += 1; renderStep(); return; }
+  const button = $('#next-step');
+  button.disabled = true; button.textContent = '실제 장소를 찾는 중...';
+  try {
+    await apiRequest('/api/place-search', {method: 'POST', body: JSON.stringify({region: state.region})});
+    const placeData = await apiRequest(`/api/places?region=${encodeURIComponent(state.region)}`);
+    places = placeData.places.map(place => ({...place, lat: Number(place.latitude), lng: Number(place.longitude)}));
+    renderResult();
+  } catch (error) {
+    const message = error.message === 'naver_search_not_configured'
+      ? '네이버 지역검색 API 키 설정이 필요합니다.'
+      : '실제 장소를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+    $('#step-panel').insertAdjacentHTML('beforeend', `<p class="form-status">${message}</p>`);
+  } finally {
+    button.disabled = false; button.textContent = '코스 만들기';
+  }
+};
 $('#prev-step').onclick = () => { capture(); if (state.step) { state.step -= 1; renderStep(); } };
 $('#edit-course').onclick = () => { state.step = 0; renderStep(); show('#wizard-view'); };
 $('#save-course').onclick = async () => {
