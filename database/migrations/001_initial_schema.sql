@@ -50,11 +50,10 @@ CREATE TABLE families (
 CREATE TABLE family_members (
   family_id char(36) NOT NULL, user_id char(36) NOT NULL,
   role enum('owner','admin','member') NOT NULL DEFAULT 'member',
-  owner_family_id char(36) AS (IF(role='owner',family_id,NULL)) PERSISTENT,
   joined_at datetime(6) NOT NULL DEFAULT current_timestamp(6), PRIMARY KEY (family_id,user_id),
-  UNIQUE KEY family_single_owner_unique (owner_family_id),
   CONSTRAINT family_members_family_fk FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
-  CONSTRAINT family_members_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT family_members_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX family_members_role_idx (family_id,role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE children (
